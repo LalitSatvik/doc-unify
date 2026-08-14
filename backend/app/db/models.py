@@ -9,10 +9,12 @@ import uuid
 from datetime import UTC, datetime
 from enum import Enum
 
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String
 from sqlalchemy import Enum as SqlEnum
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
+from app.config import settings
 from app.ingestion.base import BlockType
 
 
@@ -64,3 +66,17 @@ class ContentBlockRow(Base):
     bbox: Mapped[list[float] | None] = mapped_column(JSON, default=None)
 
     document: Mapped[Document] = relationship(back_populates="blocks")
+
+
+class Chunk(Base):
+    """An embedding-sized slice of a `ContentBlockRow`'s text, used for
+    retrieval by both schema discovery and the chat agent."""
+
+    __tablename__ = "chunks"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    document_id: Mapped[str] = mapped_column(ForeignKey("documents.id"))
+    content_block_id: Mapped[str] = mapped_column(ForeignKey("content_blocks.id"))
+    page: Mapped[int] = mapped_column(Integer)
+    text: Mapped[str] = mapped_column(String)
+    embedding: Mapped[list[float]] = mapped_column(Vector(settings.embedding_dim))

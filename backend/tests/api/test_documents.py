@@ -18,6 +18,7 @@ def test_upload_ingests_and_persists_blocks(client: TestClient, tmp_path) -> Non
     assert body["filename"] == "report.pdf"
     assert body["status"] == "ingested"
     assert body["block_count"] == 1
+    assert body["chunk_count"] == 1
 
     blocks_response = client.get(f"/documents/{body['id']}/blocks")
     assert blocks_response.status_code == 200

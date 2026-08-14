@@ -8,7 +8,9 @@ from sqlalchemy.pool import StaticPool
 
 from app.db.models import Base
 from app.db.session import get_session
+from app.llm.factory import get_llm_provider
 from app.main import app
+from tests.embedding.conftest import FakeLLMProvider
 
 
 @pytest.fixture()
@@ -26,6 +28,7 @@ def client() -> Iterator[TestClient]:
             yield session
 
     app.dependency_overrides[get_session] = override_get_session
+    app.dependency_overrides[get_llm_provider] = lambda: FakeLLMProvider()
     with TestClient(app) as test_client:
         yield test_client
     app.dependency_overrides.clear()

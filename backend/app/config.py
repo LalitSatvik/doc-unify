@@ -24,6 +24,11 @@ class Settings(BaseSettings):
     ollama_chat_model: str = "qwen2.5:7b"
     ollama_embed_model: str = "nomic-embed-text"
 
+    # Fixed at the pgvector column width for the `chunks` table (migration
+    # 0002). Changing the embed model to one with a different output
+    # dimension requires a new migration to alter this column.
+    embedding_dim: int = 768
+
     # Populated only when llm_provider == "cloud".
     cloud_api_key: str | None = None
     cloud_base_url: str | None = None
