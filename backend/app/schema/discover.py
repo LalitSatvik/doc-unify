@@ -31,7 +31,12 @@ async def discover_schema(
     if not candidates:
         return []
 
-    candidate_texts = [f"{c.label}: {c.definition or c.value}" for c in candidates]
+    # Cluster on the label alone. A definition written by a small/local
+    # model is often generic ("a financial metric...") and dilutes the
+    # signal rather than sharpening it -- the label as written is the
+    # actual "does this refer to the same thing" signal (see
+    # DEFAULT_DISTANCE_THRESHOLD's calibration note in clustering.py).
+    candidate_texts = [c.label for c in candidates]
     embeddings = await llm_provider.embed(candidate_texts)
     groups = cluster_candidates(candidates, embeddings)
 

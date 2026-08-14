@@ -52,3 +52,5 @@ def test_list_documents(client: TestClient, tmp_path) -> None:
     documents = response.json()
     assert len(documents) == 1
     assert documents[0]["filename"] == "report.pdf"
+    assert documents[0]["block_count"] == 1
+    assert documents[0]["chunk_count"] == 1
