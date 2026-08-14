@@ -105,3 +105,37 @@ class SchemaField(Base):
     conflict_reason: Mapped[str | None] = mapped_column(default=None)
     member_labels: Mapped[list[str]] = mapped_column(JSON, default=list)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
+class TableCell(Base):
+    """One (document, schema field) extracted value, with raw + normalized
+    form, confidence, and provenance back to the exact source chunk."""
+
+    __tablename__ = "table_cells"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    document_id: Mapped[str] = mapped_column(ForeignKey("documents.id"))
+    schema_field_id: Mapped[str] = mapped_column(ForeignKey("schema_fields.id"))
+    raw_value: Mapped[str | None] = mapped_column(default=None)
+    raw_unit: Mapped[str | None] = mapped_column(default=None)
+    normalized_value: Mapped[float | None] = mapped_column(default=None)
+    confidence: Mapped[float] = mapped_column(default=0.0)
+    source_chunk_id: Mapped[str | None] = mapped_column(ForeignKey("chunks.id"), default=None)
+    source_snippet: Mapped[str | None] = mapped_column(default=None)
+    page: Mapped[int | None] = mapped_column(default=None)
+    needs_review: Mapped[bool] = mapped_column(default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+
+
+class ReviewQueueItem(Base):
+    """A `TableCell` that couldn't be mechanically normalized or was
+    extracted with low confidence -- surfaced for human review rather
+    than silently coerced or dropped."""
+
+    __tablename__ = "review_queue"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    table_cell_id: Mapped[str] = mapped_column(ForeignKey("table_cells.id"))
+    reason: Mapped[str] = mapped_column(String)
+    resolved: Mapped[bool] = mapped_column(default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
