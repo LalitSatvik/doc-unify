@@ -133,4 +133,4 @@ ruff check .
 
 ## License
 
-MIT
+[MIT](LICENSE)
