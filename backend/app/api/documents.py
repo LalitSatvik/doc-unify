@@ -17,7 +17,10 @@ from sqlalchemy.orm import Session
 from app.db.models import ContentBlockRow, Document, DocumentStatus
 from app.db.repository import create_document, mark_document_status, save_content_blocks
 from app.db.session import get_session
+from app.embedding.pipeline import embed_and_store
 from app.ingestion.registry import UnsupportedFormatError, get_extractor
+from app.llm.base import LLMProvider
+from app.llm.factory import get_llm_provider
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -28,6 +31,7 @@ class DocumentOut(BaseModel):
     content_type: str
     status: DocumentStatus
     block_count: int
+    chunk_count: int = 0
 
     model_config = {"from_attributes": True}
 
@@ -45,7 +49,9 @@ class ContentBlockOut(BaseModel):
 
 @router.post("", status_code=201, response_model=DocumentOut)
 async def upload_document(
-    file: UploadFile, session: Session = Depends(get_session)
+    file: UploadFile,
+    session: Session = Depends(get_session),
+    llm_provider: LLMProvider = Depends(get_llm_provider),
 ) -> DocumentOut:
     suffix = Path(file.filename or "").suffix
     try:
@@ -71,6 +77,14 @@ async def upload_document(
             raise
 
     rows = save_content_blocks(session, document.id, blocks)
+
+    try:
+        chunks = await embed_and_store(session, llm_provider, document.id, rows)
+    except Exception:
+        mark_document_status(session, document, DocumentStatus.FAILED)
+        session.commit()
+        raise
+
     mark_document_status(session, document, DocumentStatus.INGESTED)
     session.commit()
 
@@ -80,6 +94,7 @@ async def upload_document(
         content_type=document.content_type,
         status=document.status,
         block_count=len(rows),
+        chunk_count=len(chunks),
     )
 
 
