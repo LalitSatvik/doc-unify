@@ -11,8 +11,10 @@ scoring.
 
 Built entirely with free, local tools — Ollama for the LLM and
 embeddings, Postgres+pgvector for storage/retrieval — so it runs fully
-offline via Docker Compose. A hosted demo (see `/deploy`) swaps in a
-free-tier cloud LLM behind the same provider interface.
+offline via Docker Compose. `CloudProvider` (an OpenAI-compatible client,
+e.g. for Groq's free tier) implements the same `LLMProvider` interface as
+`OllamaProvider`, so a hosted deployment is a config change
+(`LLM_PROVIDER=cloud` + `CLOUD_*` env vars), not a code change.
 
 ## Why
 
@@ -26,7 +28,19 @@ merging things that only look alike.
 
 ## Status
 
-Early scaffolding — see `docs/plan.md` for the phased build plan.
+The full pipeline is implemented end to end: ingest (PDF/image/docx/pptx,
+with OCR fallback for scans) → chunk + embed into pgvector → propose a
+unified schema (candidate extraction → clustering → LLM cluster review,
+with explicit conflict flags) → approve/rename fields → extract +
+normalize against the approved schema (unit/scale conversion, confidence
+scoring, a review queue for anything that can't be mechanically
+normalized) → query it all conversationally through a tool-calling chat
+agent, or through the ledger-themed frontend. Video ingestion remains an
+explicitly deferred stub (`app/ingestion/video.py`) against the same
+`Extractor` interface. See `docs/plan.md` for the original phased plan.
+
+Backend: 79 tests, `ruff` clean. Frontend: `next build` (TypeScript +
+ESLint) clean.
 
 ## Architecture
 
@@ -47,11 +61,24 @@ frontend/      Next.js app (upload, chat, schema review, unified data grid)
 
 ```bash
 docker compose up --build
+
+# first run only -- pull the models Ollama needs:
+docker compose exec ollama ollama pull qwen2.5:7b
+docker compose exec ollama ollama pull nomic-embed-text
 ```
 
 - Frontend: http://localhost:3000
 - Backend API: http://localhost:8000
-- Ollama: http://localhost:11434 (pulls models on first run)
+- Ollama: http://localhost:11434
+
+## Running the backend tests
+
+```bash
+cd backend
+pip install -e ".[dev]"
+pytest
+ruff check .
+```
 
 ## License
 
