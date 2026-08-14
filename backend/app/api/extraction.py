@@ -4,19 +4,17 @@ export."""
 
 from __future__ import annotations
 
-import csv
-import io
-
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.db.models import Document, ReviewQueueItem, SchemaField
+from app.db.models import ReviewQueueItem
 from app.db.models import TableCell as TableCellRow
 from app.db.session import get_session
 from app.extraction.run import run_extraction
+from app.extraction.table import build_unified_table, unified_table_to_csv
 from app.llm.base import LLMProvider
 from app.llm.factory import get_llm_provider
 
@@ -69,59 +67,14 @@ async def run(
     return cells
 
 
-def _build_unified_table(session: Session) -> list[dict]:
-    documents = {d.id: d for d in session.scalars(select(Document)).all()}
-    fields = {f.id: f for f in session.scalars(select(SchemaField)).all()}
-    cells = session.scalars(select(TableCellRow)).all()
-
-    rows: dict[str, dict] = {}
-    for cell in cells:
-        document = documents.get(cell.document_id)
-        field = fields.get(cell.schema_field_id)
-        if document is None or field is None:
-            continue
-
-        row = rows.setdefault(
-            document.id,
-            {"document_id": document.id, "document_filename": document.filename, "cells": {}},
-        )
-        row["cells"][field.name] = {
-            "raw_value": cell.raw_value,
-            "raw_unit": cell.raw_unit,
-            "normalized_value": cell.normalized_value,
-            "confidence": cell.confidence,
-            "needs_review": cell.needs_review,
-            "page": cell.page,
-            "source_snippet": cell.source_snippet,
-        }
-
-    return list(rows.values())
-
-
 @router.get("/table")
 async def get_table(session: Session = Depends(get_session)) -> list[dict]:
-    return _build_unified_table(session)
+    return build_unified_table(session)
 
 
 @router.get("/export.csv", response_class=PlainTextResponse)
 async def export_csv(session: Session = Depends(get_session)) -> str:
-    table = _build_unified_table(session)
-    field_names = sorted({name for row in table for name in row["cells"]})
-
-    buffer = io.StringIO()
-    writer = csv.writer(buffer)
-    writer.writerow(["document", *field_names])
-    for row in table:
-        writer.writerow(
-            [row["document_filename"]]
-            + [
-                row["cells"].get(name, {}).get("normalized_value", "")
-                if row["cells"].get(name)
-                else ""
-                for name in field_names
-            ]
-        )
-    return buffer.getvalue()
+    return unified_table_to_csv(build_unified_table(session))
 
 
 @router.get("/review-queue", response_model=list[ReviewQueueOut])
