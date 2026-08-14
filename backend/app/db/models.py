@@ -80,3 +80,28 @@ class Chunk(Base):
     page: Mapped[int] = mapped_column(Integer)
     text: Mapped[str] = mapped_column(String)
     embedding: Mapped[list[float]] = mapped_column(Vector(settings.embedding_dim))
+
+
+class SchemaFieldStatus(str, Enum):
+    PROPOSED = "proposed"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+
+
+class SchemaField(Base):
+    """One field in the unified schema -- proposed by discovery, then
+    approved/renamed/rejected by the user before extraction runs."""
+
+    __tablename__ = "schema_fields"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
+    name: Mapped[str] = mapped_column(String(256))
+    definition: Mapped[str] = mapped_column(String)
+    status: Mapped[SchemaFieldStatus] = mapped_column(
+        SqlEnum(SchemaFieldStatus, name="schema_field_status"),
+        default=SchemaFieldStatus.PROPOSED,
+    )
+    has_conflict: Mapped[bool] = mapped_column(default=False)
+    conflict_reason: Mapped[str | None] = mapped_column(default=None)
+    member_labels: Mapped[list[str]] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
