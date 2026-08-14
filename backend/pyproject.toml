@@ -20,6 +20,8 @@ dependencies = [
     "python-docx>=1.1",
     "python-pptx>=1.0",
     "python-multipart>=0.0.12",
+    "scikit-learn>=1.5",
+    "numpy>=1.26",
 ]
 
 [project.optional-dependencies]
