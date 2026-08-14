@@ -1,9 +1,628 @@
+/* ---------------------------------------------------------------------
+   doc-unify design tokens -- "ledger" direction.
+
+   The product's whole value is turning messy documents into a verified,
+   provenance-backed table -- like a document examiner reconciling a
+   ledger. Palette reads as archival paper + ink, not a SaaS dashboard.
+   ------------------------------------------------------------------- */
+
 :root {
-  color-scheme: light dark;
+  --paper: #eef0ea;
+  --paper-raised: #f7f8f4;
+  --ink: #1b2420;
+  --ink-soft: #4a5249;
+  --rule: #c9ccc0;
+  --rule-strong: #a9ad9c;
+
+  --stamp-verified: #2f6f5e;
+  --stamp-verified-bg: #e2ede8;
+  --stamp-flagged: #c98a2c;
+  --stamp-flagged-bg: #f4e9d6;
+  --stamp-rejected: #b23a2e;
+  --stamp-rejected-bg: #f4e1de;
+
+  --focus-ring: #2f6f5e;
+
+  /* --font-display / --font-body / --font-mono are supplied by next/font
+     (see app/layout.tsx) on the <html> element -- not redefined here. */
+
+  --rail-width: 76px;
+  --radius: 3px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #171a16;
+    --paper-raised: #1f231d;
+    --ink: #e9ebe3;
+    --ink-soft: #a9ad9c;
+    --rule: #33362e;
+    --rule-strong: #464a3d;
+
+    --stamp-verified: #6fbfa4;
+    --stamp-verified-bg: #1c2d27;
+    --stamp-flagged: #dcae5f;
+    --stamp-flagged-bg: #302818;
+    --stamp-rejected: #dd8a7c;
+    --stamp-rejected-bg: #33201d;
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper: #171a16;
+  --paper-raised: #1f231d;
+  --ink: #e9ebe3;
+  --ink-soft: #a9ad9c;
+  --rule: #33362e;
+  --rule-strong: #464a3d;
+
+  --stamp-verified: #6fbfa4;
+  --stamp-verified-bg: #1c2d27;
+  --stamp-flagged: #dcae5f;
+  --stamp-flagged-bg: #302818;
+  --stamp-rejected: #dd8a7c;
+  --stamp-rejected-bg: #33201d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
 }
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, sans-serif;
-  padding: 2rem;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+button,
+input,
+textarea {
+  font-family: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+a {
+  color: inherit;
+}
+
+/* Ledger ruling -- a repeating hairline used behind list-like content. */
+.ruled {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 39px,
+    var(--rule) 40px
+  );
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------------
+   Shell + rail
+   ------------------------------------------------------------------- */
+
+.shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.rail {
+  width: var(--rail-width);
+  flex-shrink: 0;
+  border-right: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  padding: 20px 0;
+  gap: 4px;
+}
+
+.rail-mark {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-style: italic;
+  text-align: center;
+  margin-bottom: 24px;
+  color: var(--stamp-verified);
+}
+
+.rail-tab {
+  background: none;
+  border: none;
+  border-left: 3px solid transparent;
+  padding: 16px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-soft);
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.rail-tab:hover {
+  color: var(--ink);
+  background: var(--paper-raised);
+}
+
+.rail-tab[aria-current="true"] {
+  color: var(--ink);
+  border-left-color: var(--stamp-verified);
+  background: var(--paper-raised);
+  font-weight: 600;
+}
+
+.rail-tab-count {
+  writing-mode: horizontal-tb;
+  transform: rotate(0deg);
+  font-size: 10px;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--stamp-flagged-bg);
+  color: var(--stamp-flagged);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 5px;
+}
+
+.stage {
+  flex: 1;
+  min-width: 0;
+  padding: 40px 48px 64px;
+  max-width: 1040px;
+}
+
+.stage-header {
+  margin-bottom: 32px;
+}
+
+.stage-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin: 0 0 6px;
+}
+
+.stage-title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-size: 32px;
+  margin: 0 0 8px;
+}
+
+.stage-subtitle {
+  color: var(--ink-soft);
+  margin: 0;
+  max-width: 56ch;
+}
+
+/* ---------------------------------------------------------------------
+   Cards / sections
+   ------------------------------------------------------------------- */
+
+.sheet {
+  background: var(--paper-raised);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+
+.sheet + .sheet {
+  margin-top: 20px;
+}
+
+.sheet-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.sheet-header h2 {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.sheet-header-meta {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+/* ---------------------------------------------------------------------
+   Dropzone
+   ------------------------------------------------------------------- */
+
+.dropzone {
+  border: 1.5px dashed var(--rule-strong);
+  border-radius: var(--radius);
+  padding: 40px 24px;
+  text-align: center;
+  color: var(--ink-soft);
+  background: var(--paper-raised);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.dropzone.is-active {
+  border-color: var(--stamp-verified);
+  background: var(--stamp-verified-bg);
+  color: var(--ink);
+}
+
+.dropzone-title {
+  font-family: var(--font-display);
+  font-size: 19px;
+  color: var(--ink);
+  margin: 0 0 6px;
+}
+
+.dropzone input[type="file"] {
+  display: none;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 9px 16px;
+  border-radius: var(--radius);
+  transition: transform 0.1s ease, opacity 0.15s ease;
+}
+
+.btn:hover {
+  opacity: 0.85;
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--rule-strong);
+}
+
+.btn-ghost:hover {
+  background: var(--paper);
+  opacity: 1;
+  border-color: var(--ink);
+}
+
+.btn-sm {
+  padding: 5px 10px;
+  font-size: 11px;
+}
+
+/* ---------------------------------------------------------------------
+   Document list
+   ------------------------------------------------------------------- */
+
+.doc-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.doc-row:last-child {
+  border-bottom: none;
+}
+
+.doc-name {
+  font-weight: 500;
+}
+
+.doc-meta {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 6px;
+}
+
+.status-dot.ingested {
+  background: var(--stamp-verified);
+}
+
+.status-dot.pending {
+  background: var(--stamp-flagged);
+}
+
+.status-dot.failed {
+  background: var(--stamp-rejected);
+}
+
+/* ---------------------------------------------------------------------
+   Schema list
+   ------------------------------------------------------------------- */
+
+.field-row {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--rule);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field-row:last-child {
+  border-bottom: none;
+}
+
+.field-row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.field-name-input {
+  font-family: var(--font-display);
+  font-size: 16px;
+  border: none;
+  background: transparent;
+  border-bottom: 1px dashed transparent;
+  padding: 2px 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.field-name-input:hover,
+.field-name-input:focus {
+  border-bottom-color: var(--rule-strong);
+}
+
+.field-def {
+  color: var(--ink-soft);
+  font-size: 13px;
+  margin: 0;
+}
+
+.field-members {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.field-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.conflict-banner {
+  background: var(--stamp-flagged-bg);
+  color: var(--stamp-flagged);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  font-size: 12.5px;
+  display: flex;
+  gap: 8px;
+}
+
+/* ---------------------------------------------------------------------
+   Stamp (signature element)
+   ------------------------------------------------------------------- */
+
+.stamp-wrap {
+  position: relative;
+  display: inline-block;
+}
+
+.stamp {
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
+  border: 1.5px solid currentColor;
+  border-radius: 999px;
+  padding: 3px 9px;
+  background: transparent;
+  transform: rotate(-4deg);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.stamp-verified {
+  color: var(--stamp-verified);
+}
+
+.stamp-flagged {
+  color: var(--stamp-flagged);
+}
+
+.stamp-rejected {
+  color: var(--stamp-rejected);
+}
+
+.stamp-citation {
+  position: absolute;
+  z-index: 10;
+  top: calc(100% + 8px);
+  left: 0;
+  width: 260px;
+  background: var(--paper-raised);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  transform: rotate(-1deg);
+}
+
+.stamp-citation-doc {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-soft);
+  margin: 0 0 6px;
+}
+
+.stamp-citation-snippet {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 13.5px;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* ---------------------------------------------------------------------
+   Unified table
+   ------------------------------------------------------------------- */
+
+.ledger-table-scroll {
+  overflow-x: auto;
+}
+
+.ledger-table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 480px;
+}
+
+.ledger-table th,
+.ledger-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--rule);
+  text-align: left;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.ledger-table th {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  font-weight: 500;
+}
+
+.ledger-table td.doc-cell {
+  font-weight: 500;
+}
+
+.cell-value {
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.cell-empty {
+  color: var(--rule-strong);
+}
+
+/* ---------------------------------------------------------------------
+   Chat
+   ------------------------------------------------------------------- */
+
+.chat-log {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  min-height: 320px;
+}
+
+.chat-msg {
+  max-width: 70%;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  line-height: 1.5;
+}
+
+.chat-msg.user {
+  align-self: flex-end;
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.chat-msg.assistant {
+  align-self: flex-start;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+}
+
+.chat-input-row {
+  display: flex;
+  gap: 8px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--rule);
+}
+
+.chat-input-row input {
+  flex: 1;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--radius);
+  padding: 9px 12px;
+  background: var(--paper);
+}
+
+.empty-note {
+  padding: 24px 18px;
+  color: var(--ink-soft);
+  font-size: 13.5px;
+}
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--rule);
+  font-size: 13px;
 }
