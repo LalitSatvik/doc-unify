@@ -26,6 +26,57 @@ error-prone. This project automates the two hard parts: figuring out
 differently-labeled fields into one consistent table without silently
 merging things that only look alike.
 
+## Screenshots
+
+Real output from a local run — two synthetic investor updates for the
+same fictional company, one labeling revenue "Total Revenue" and the
+next "Net Sales", with a GAAP vs. non-GAAP net income pair thrown in.
+
+**Intake** — drop reports in, watch them get ingested, chunked, and
+embedded:
+
+![Intake](docs/screenshots/intake.png)
+
+**Schema** — candidate fields clustered across both documents into one
+proposal each; note "Revenue" lists both `Total Revenue` and `Net Sales`
+as its as-written members, and "Net Income" lists both the GAAP and
+non-GAAP figures it clustered together for review:
+
+![Schema](docs/screenshots/schema.png)
+
+**Ledger** — the unified table, one row per document, every cell
+stamped with a confidence score that opens its exact source citation on
+click, plus a review queue for anything that couldn't be mechanically
+normalized (here, a `unit: 'employees'` on the headcount figure):
+
+![Ledger](docs/screenshots/ledger.png)
+
+**Chat** — the same pipeline, driven conversationally through the
+tool-calling agent (shown mid-request; a 3B local model takes a couple
+of minutes to work through a multi-round tool call on CPU/Metal). The
+real reply to this exact message, from the same local run:
+
+> You have two documents ingested: "Acme_Q3_2025_Investor_Update.pdf"
+> and "Acme_Q4_2025_Investor_Update.pdf". The proposed schema includes
+> the following fields: 'Revenue', 'Gross Margin', 'Total Employee
+> Count', 'Net Income', and 'Adjusted EBITDA'. We can proceed to
+> extract the 'Revenue' field from these documents. Would you like to
+> proceed with extracting the 'Revenue' field from the documents? If
+> so, I can run the extraction process.
+
+![Chat](docs/screenshots/chat.png)
+
+*(These screenshots were taken running fully local against a small
+3B-parameter model for speed — `qwen2.5:3b` rather than the `qwen2.5:7b`
+the app defaults to. Clustering quality is model-independent (it's
+driven by the embedding model), but the LLM cluster-review step's
+conflict-flagging is a judgment call that gets meaningfully more
+reliable with a larger model; the 3B model correctly clustered the GAAP/
+non-GAAP pair together but didn't flag `has_conflict` on it here, where
+the default 7B model is markedly more consistent about it in testing.
+The same undersized model is also why the chat round-trip above is
+slow — expect snappier responses on GPU or with the default model.)*
+
 ## Status
 
 The full pipeline is implemented end to end: ingest (PDF/image/docx/pptx,

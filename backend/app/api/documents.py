@@ -11,9 +11,10 @@ from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.db.models import Chunk as ChunkRow
 from app.db.models import ContentBlockRow, Document, DocumentStatus
 from app.db.repository import create_document, mark_document_status, save_content_blocks
 from app.db.session import get_session
@@ -101,6 +102,11 @@ async def upload_document(
 @router.get("", response_model=list[DocumentOut])
 async def list_documents(session: Session = Depends(get_session)) -> list[DocumentOut]:
     documents = session.scalars(select(Document)).all()
+    chunk_counts = dict(
+        session.execute(
+            select(ChunkRow.document_id, func.count(ChunkRow.id)).group_by(ChunkRow.document_id)
+        ).all()
+    )
     return [
         DocumentOut(
             id=d.id,
@@ -108,6 +114,7 @@ async def list_documents(session: Session = Depends(get_session)) -> list[Docume
             content_type=d.content_type,
             status=d.status,
             block_count=len(d.blocks),
+            chunk_count=chunk_counts.get(d.id, 0),
         )
         for d in documents
     ]

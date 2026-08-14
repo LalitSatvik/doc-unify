@@ -18,6 +18,15 @@ from app.config import settings
 from app.ingestion.base import BlockType
 
 
+def _pg_enum(enum_cls: type[Enum], name: str) -> SqlEnum:
+    """SQLAlchemy's `Enum` sends the Python member *name* by default
+    (e.g. "PENDING"); our migrations declare the Postgres enum type using
+    the member *values* (e.g. "pending"). `values_callable` makes the two
+    agree -- without it, every insert fails against a real Postgres
+    database (SQLite's total lack of enum enforcement hides this)."""
+    return SqlEnum(enum_cls, name=name, values_callable=lambda cls: [e.value for e in cls])
+
+
 def _uuid() -> str:
     return str(uuid.uuid4())
 
@@ -43,7 +52,7 @@ class Document(Base):
     filename: Mapped[str] = mapped_column(String(512))
     content_type: Mapped[str] = mapped_column(String(128))
     status: Mapped[DocumentStatus] = mapped_column(
-        SqlEnum(DocumentStatus, name="document_status"), default=DocumentStatus.PENDING
+        _pg_enum(DocumentStatus, "document_status"), default=DocumentStatus.PENDING
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
 
@@ -60,7 +69,7 @@ class ContentBlockRow(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     document_id: Mapped[str] = mapped_column(ForeignKey("documents.id"))
     page: Mapped[int] = mapped_column(Integer)
-    block_type: Mapped[BlockType] = mapped_column(SqlEnum(BlockType, name="block_type"))
+    block_type: Mapped[BlockType] = mapped_column(_pg_enum(BlockType, "block_type"))
     text: Mapped[str | None] = mapped_column(default=None)
     table: Mapped[list[list[str]] | None] = mapped_column(JSON, default=None)
     bbox: Mapped[list[float] | None] = mapped_column(JSON, default=None)
@@ -98,7 +107,7 @@ class SchemaField(Base):
     name: Mapped[str] = mapped_column(String(256))
     definition: Mapped[str] = mapped_column(String)
     status: Mapped[SchemaFieldStatus] = mapped_column(
-        SqlEnum(SchemaFieldStatus, name="schema_field_status"),
+        _pg_enum(SchemaFieldStatus, "schema_field_status"),
         default=SchemaFieldStatus.PROPOSED,
     )
     has_conflict: Mapped[bool] = mapped_column(default=False)

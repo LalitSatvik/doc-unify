@@ -40,13 +40,20 @@ async def review_cluster(llm_provider: LLMProvider, members: list[CandidateField
     prompt = (
         "These candidate fields were grouped as likely referring to the same "
         "underlying measurement. Propose ONE canonical field name and a short "
-        "definition that covers all of them. If any member looks like it "
-        "measures something meaningfully different (e.g. GAAP vs non-GAAP, "
-        "gross vs net, a different time period or methodology) rather than "
-        "just a differently-worded label for the same thing, set has_conflict "
-        "true and explain why in conflict_reason -- never silently merge "
-        "different measurements.\n\n"
-        f"Candidates:\n{listing}"
+        "definition that covers all of them.\n\n"
+        f"Candidates:\n{listing}\n\n"
+        "Before answering, check each label and definition for a qualifier "
+        "that signals a different accounting basis, methodology, or period "
+        "than the others -- for example: GAAP vs non-GAAP/adjusted/pro forma, "
+        "gross vs net, before-tax vs after-tax, or a different quarter/year. "
+        "Two labels can be worded completely differently and still be the "
+        "same measurement (that's the normal case here) -- the deciding "
+        "question is whether the *numbers* would differ for a reason other "
+        "than wording. If you find such a qualifier on even one member, you "
+        "MUST set has_conflict to true and name the specific qualifier in "
+        "conflict_reason, even though the underlying metric name matches. "
+        "Only set has_conflict to false when every member measures the exact "
+        "same thing the exact same way."
     )
     response = await llm_provider.complete(
         [{"role": "user", "content": prompt}], json_schema=REVIEW_SCHEMA
