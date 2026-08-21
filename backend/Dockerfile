@@ -13,6 +13,8 @@ RUN pip install --no-cache-dir -e ".[dev]"
 
 COPY app ./app
 COPY tests ./tests
+COPY alembic.ini ./alembic.ini
+COPY migrations ./migrations
 COPY start.sh ./start.sh
 RUN chmod +x ./start.sh
 
