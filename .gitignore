@@ -22,5 +22,9 @@ next-env.d.ts.bak
 .vscode/
 .idea/
 
+# Claude Code local settings (can capture allowlisted commands verbatim,
+# including any secrets passed on the command line — never commit)
+.claude/
+
 # Session transcripts accidentally saved into the repo
 *.jsonl

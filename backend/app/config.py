@@ -5,6 +5,7 @@ with the docker-compose stack out of the box.
 
 from __future__ import annotations
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -15,6 +16,19 @@ class Settings(BaseSettings):
     database_url: str = (
         "postgresql+psycopg://docunify:docunify@localhost:5432/docunify"
     )
+
+    @field_validator("database_url")
+    @classmethod
+    def _force_psycopg_driver(cls, value: str) -> str:
+        """Managed Postgres providers (Render, etc.) hand out plain
+        `postgresql://` or `postgres://` URLs. The app's engine is built
+        with the psycopg (v3) driver, not psycopg2, so the scheme must
+        say so explicitly or SQLAlchemy defaults to the (uninstalled)
+        psycopg2 dialect."""
+        for prefix in ("postgresql://", "postgres://"):
+            if value.startswith(prefix):
+                return "postgresql+psycopg://" + value[len(prefix) :]
+        return value
 
     # Which LLMProvider implementation backs the app. "ollama" is the
     # default, fully-local path; "cloud" backs the hosted demo.
@@ -33,6 +47,7 @@ class Settings(BaseSettings):
     cloud_api_key: str | None = None
     cloud_base_url: str | None = None
     cloud_chat_model: str | None = None
+    cloud_embed_model: str | None = None
 
     cors_allow_origins: list[str] = ["http://localhost:3000"]
 
