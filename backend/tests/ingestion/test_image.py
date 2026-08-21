@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 
 from app.ingestion.base import BlockType
 from app.ingestion.image import ImageExtractor
@@ -9,11 +9,13 @@ from app.ingestion.image import ImageExtractor
 def test_ocr_extracts_text_from_image(tmp_path: Path) -> None:
     img = Image.new("RGB", (700, 200), "white")
     draw = ImageDraw.Draw(img)
-    # No system font path here (was hardcoded to macOS's Arial.ttf, which
-    # doesn't exist on Linux CI runners) -- PIL's built-in default bitmap
-    # font is enough for tesseract to read back, same as the scanned-PDF
-    # fixture in pdf_fixtures.py.
-    draw.text((20, 80), "Total Assets 555000", fill="black")
+    # No hardcoded system font path (this used to point at macOS's
+    # Arial.ttf, which doesn't exist on Linux CI runners) -- PIL's
+    # built-in default font, scaled up, renders clean enough glyphs for
+    # tesseract to read reliably. Pillow's default bitmap font at size 1
+    # is too small/low-res for OCR (misreads "Assets" as "sets").
+    font = ImageFont.load_default(size=28)
+    draw.text((20, 80), "Total Assets 555000", fill="black", font=font)
     img_path = tmp_path / "scan.png"
     img.save(img_path)
 
