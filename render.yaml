@@ -25,5 +25,3 @@ services:
         value: nomic-embed-text-v1_5
       - key: CLOUD_API_KEY
         sync: false
-      - key: CORS_ALLOW_ORIGINS
-        sync: false
