@@ -28,3 +28,4 @@ next-env.d.ts.bak
 
 # Session transcripts accidentally saved into the repo
 *.jsonl
+frontend/tsconfig.tsbuildinfo

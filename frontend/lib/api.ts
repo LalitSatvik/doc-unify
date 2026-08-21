@@ -53,11 +53,30 @@ export interface ChatMessage {
   content: string;
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`/api${path}`, {
-    ...init,
-    headers: init?.body instanceof FormData ? init.headers : { "Content-Type": "application/json", ...init?.headers },
-  });
+const DEFAULT_TIMEOUT_MS = 30_000;
+// Ingestion (extraction + embedding) runs synchronously on the backend and
+// can legitimately take a while for large, table-heavy PDFs -- give uploads
+// more room than other calls before treating it as hung.
+const UPLOAD_TIMEOUT_MS = 180_000;
+
+async function request<T>(path: string, init?: RequestInit, timeoutMs = DEFAULT_TIMEOUT_MS): Promise<T> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  let response: Response;
+  try {
+    response = await fetch(`/api${path}`, {
+      ...init,
+      signal: controller.signal,
+      headers: init?.body instanceof FormData ? init.headers : { "Content-Type": "application/json", ...init?.headers },
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error(`Request to ${path} timed out after ${Math.round(timeoutMs / 1000)}s.`);
+    }
+    throw new Error(`Could not reach the backend for ${path}: ${error instanceof Error ? error.message : String(error)}`);
+  } finally {
+    clearTimeout(timeout);
+  }
   if (!response.ok) {
     const detail = await response.text();
     throw new Error(`${response.status} ${response.statusText}: ${detail}`);
@@ -69,7 +88,7 @@ export const api = {
   uploadDocument: (file: File) => {
     const form = new FormData();
     form.append("file", file);
-    return request<DocumentOut>("/documents", { method: "POST", body: form });
+    return request<DocumentOut>("/documents", { method: "POST", body: form }, UPLOAD_TIMEOUT_MS);
   },
   listDocuments: () => request<DocumentOut[]>("/documents"),
 

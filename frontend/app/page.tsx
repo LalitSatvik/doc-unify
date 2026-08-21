@@ -52,6 +52,7 @@ export default function Home() {
   const [running, setRunning] = useState(false);
   const [sending, setSending] = useState(false);
   const [backendUnreachable, setBackendUnreachable] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const refreshAll = useCallback(async () => {
     try {
@@ -77,13 +78,23 @@ export default function Home() {
 
   async function handleUpload(files: FileList) {
     setUploading(true);
+    setUploadError(null);
     try {
       for (const file of Array.from(files)) {
         await api.uploadDocument(file);
       }
-      const docs = await api.listDocuments();
-      setDocuments(docs);
+    } catch (error) {
+      setUploadError(error instanceof Error ? error.message : "Upload failed for an unknown reason.");
     } finally {
+      // Refresh regardless of outcome: a failed upload may still have left a
+      // "failed" row (or earlier files in a batch may have succeeded), and
+      // the ledger should reflect that rather than silently omitting it.
+      try {
+        setDocuments(await api.listDocuments());
+      } catch {
+        // Backend-unreachable case is already surfaced by refreshAll/the
+        // banner below; don't overwrite a more specific upload error with it.
+      }
       setUploading(false);
     }
   }
@@ -167,6 +178,11 @@ export default function Home() {
           {backendUnreachable && (
             <p className="conflict-banner" style={{ marginTop: 12, display: "inline-flex" }}>
               ⚠ Can&rsquo;t reach the backend -- is <code>docker compose up</code> running?
+            </p>
+          )}
+          {uploadError && (
+            <p className="conflict-banner" style={{ marginTop: 12, display: "inline-flex" }}>
+              ⚠ Upload failed: {uploadError}
             </p>
           )}
         </header>
