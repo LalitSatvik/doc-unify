@@ -13,6 +13,8 @@ RUN pip install --no-cache-dir -e ".[dev]"
 
 COPY app ./app
 COPY tests ./tests
+COPY start.sh ./start.sh
+RUN chmod +x ./start.sh
 
 EXPOSE 8000
 

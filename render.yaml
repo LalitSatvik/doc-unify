@@ -6,11 +6,9 @@ services:
     rootDir: backend
     dockerfilePath: ./Dockerfile
     dockerContext: .
-    # Override the dev CMD (--reload, fixed port 8000): run migrations
-    # first, then serve on Render's assigned $PORT.
-    dockerCommand: >-
-      sh -c "alembic upgrade head &&
-      uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    # Overrides the dev CMD (--reload, fixed port 8000): runs migrations,
+    # then serves on Render's assigned $PORT. See backend/start.sh.
+    dockerCommand: ./start.sh
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
