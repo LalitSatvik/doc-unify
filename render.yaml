@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: doc-unify-backend
+    runtime: docker
+    plan: free
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    # Overrides the dev CMD (--reload, fixed port 8000): runs migrations,
+    # then serves on Render's assigned $PORT. See backend/start.sh.
+    dockerCommand: ./start.sh
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: LLM_PROVIDER
+        value: cloud
+      - key: CLOUD_BASE_URL
+        value: https://api.groq.com/openai/v1
+      - key: CLOUD_CHAT_MODEL
+        value: llama-3.3-70b-versatile
+      - key: CLOUD_EMBED_MODEL
+        value: nomic-embed-text-v1_5
+      - key: CLOUD_API_KEY
+        sync: false

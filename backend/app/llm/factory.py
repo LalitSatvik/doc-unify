@@ -16,15 +16,21 @@ def get_llm_provider() -> LLMProvider:
     if settings.llm_provider == "cloud":
         from app.llm.cloud import CloudProvider
 
-        if not (settings.cloud_api_key and settings.cloud_base_url and settings.cloud_chat_model):
+        if not (
+            settings.cloud_api_key
+            and settings.cloud_base_url
+            and settings.cloud_chat_model
+            and settings.cloud_embed_model
+        ):
             raise RuntimeError(
-                "llm_provider=cloud requires cloud_api_key, cloud_base_url, and "
-                "cloud_chat_model to be set"
+                "llm_provider=cloud requires cloud_api_key, cloud_base_url, "
+                "cloud_chat_model, and cloud_embed_model to be set"
             )
         return CloudProvider(
             api_key=settings.cloud_api_key,
             base_url=settings.cloud_base_url,
             chat_model=settings.cloud_chat_model,
+            embed_model=settings.cloud_embed_model,
             embedding_dim=settings.embedding_dim,
         )
 
