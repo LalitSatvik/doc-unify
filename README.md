@@ -66,16 +66,10 @@ real reply to this exact message, from the same local run:
 
 ![Chat](docs/screenshots/chat.png)
 
-*(These screenshots were taken running fully local against a small
-3B-parameter model for speed — `qwen2.5:3b` rather than the `qwen2.5:7b`
-the app defaults to. Clustering quality is model-independent (it's
-driven by the embedding model), but the LLM cluster-review step's
-conflict-flagging is a judgment call that gets meaningfully more
-reliable with a larger model; the 3B model correctly clustered the GAAP/
-non-GAAP pair together but didn't flag `has_conflict` on it here, where
-the default 7B model is markedly more consistent about it in testing.
-The same undersized model is also why the chat round-trip above is
-slow — expect snappier responses on GPU or with the default model.)*
+*(Run locally against `qwen2.5:3b` for speed rather than the default
+`qwen2.5:7b`. Clustering is embedding-driven and model-independent; the
+LLM conflict-flagging step and the chat latency both improve with the
+larger default model or a GPU.)*
 
 ## Status
 
